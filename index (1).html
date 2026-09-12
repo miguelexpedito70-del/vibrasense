@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SP4 VibraSense</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f2f5;--s1:#fff;--s2:#f5f6f8;--bd:#e4e7ec;--tx:#101828;--mu:#667085;--sb:#344054;--gr:#0d9e75;--grl:#ecfdf5;--grd:#065f46;--am:#d97706;--aml:#fffbeb;--rd:#dc2626;--rdl:#fef2f2;--sh:0 1px 3px rgba(16,24,40,.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.tb{background:var(--s1);border-bottom:1px solid var(--bd);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:var(--sh)}
+.logo{width:28px;height:28px;background:var(--gr);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
+.tn{font-size:13px;font-weight:700}.ts{font-size:8px;color:var(--mu);letter-spacing:.1em}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--bd);color:var(--sb);background:var(--s1);cursor:pointer;transition:all .15s;font-weight:500;box-shadow:var(--sh)}
+.chip:hover{border-color:var(--gr)}.chip.g{border-color:#a7f3d0;color:var(--grd);background:var(--grl)}.chip.r{border-color:#fca5a5;color:#991b1b;background:var(--rdl)}.chip.w{border-color:#fde68a;color:#92400e;background:var(--aml)}
+.app{display:grid;grid-template-columns:200px 1fr 295px;flex:1;overflow:hidden;min-height:0}
+.sb{background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.nav{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--bd);background:var(--s2)}
+.nt{flex:1 0 48%;padding:5px 2px;font-size:8.5px;color:var(--mu);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-weight:500}
+.nt.on{color:var(--gr);border-color:var(--gr);font-weight:700;background:var(--s1)}
+.ml{flex:1;overflow-y:auto;padding:5px}.ml::-webkit-scrollbar{width:2px}.ml::-webkit-scrollbar-thumb{background:var(--bd)}
+.mi{padding:6px 8px;border-radius:8px;cursor:pointer;margin-bottom:2px;display:flex;align-items:center;justify-content:space-between;transition:all .1s}
+.mi:hover,.mi.on{background:var(--s2)}.mi.on{border-left:2px solid var(--gr)}
+.mn{font-size:11px;font-weight:600}.ms{font-size:9px;color:var(--mu);margin-top:1px}
+.pi{font-size:8px;padding:2px 5px;border-radius:7px;font-weight:700;flex-shrink:0}
+.pok{background:var(--grl);color:var(--grd)}.pwn{background:var(--aml);color:#92400e}.pal{background:var(--rdl);color:#991b1b}.pid{background:var(--s2);color:var(--mu);border:1px solid var(--bd)}
+.main{display:flex;flex-direction:column;overflow:hidden;min-height:0;background:var(--bg)}
+.top2{padding:8px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--s1);flex-shrink:0;box-shadow:var(--sh)}
+.t2t{font-size:13px;font-weight:700}.t2m{font-size:10px;color:var(--mu);margin-top:2px}
+.ab{margin:5px 12px 0;padding:7px 10px;border-radius:8px;font-size:10px;display:none;align-items:center;gap:6px;flex-shrink:0;font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:7px 12px;flex-shrink:0}
+.kc{background:var(--s1);border-radius:9px;padding:9px 11px;border:1px solid var(--bd);box-shadow:var(--sh)}
+.kl{font-size:8.5px;color:var(--mu);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.kv{font-size:20px;font-weight:700;line-height:1}.ks{font-size:9px;color:var(--mu);margin-top:2px}
+.charts{display:grid;grid-template-columns:3fr 2fr;gap:7px;padding:0 12px 8px;flex:1;min-height:0}
+.cc{background:var(--s1);border-radius:9px;border:1px solid var(--bd);padding:9px 11px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh)}
+.ct{font-size:9.5px;font-weight:600;color:var(--sb);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.cw{position:relative;flex:1;min-height:0}
+.hr{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.hl{width:68px;font-size:9.5px;color:var(--mu);flex-shrink:0;font-weight:500}
+.hb{flex:1;height:5px;background:var(--s2);border-radius:3px;overflow:hidden}
+.hf{height:100%;border-radius:3px;transition:width .5s}
+.hv{width:30px;text-align:right;font-weight:700;font-size:9.5px}
+.idle{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--mu);font-size:11px;gap:7px;text-align:center}
+.idle i{font-size:28px;color:var(--bd)}
+.chat{background:var(--s1);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.chdr{padding:9px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--s2)}
+.cav{width:26px;height:26px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:13px;color:#6d28d9;flex-shrink:0}
+.ctit{font-size:11px;font-weight:700}.csub{font-size:9px;color:var(--mu)}
+.aibadge{font-size:8px;padding:1px 6px;border-radius:10px;background:#ede9fe;color:#6d28d9;font-weight:600;margin-left:4px}
+.msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;background:var(--bg)}
+.msgs::-webkit-scrollbar{width:2px}.msgs::-webkit-scrollbar-thumb{background:var(--bd)}
+.msg{max-width:92%;padding:7px 10px;border-radius:11px;font-size:11px;line-height:1.6}
+.ai{background:var(--s1);border:1px solid var(--bd);align-self:flex-start;border-bottom-left-radius:2px;color:var(--tx);box-shadow:var(--sh)}
+.us{background:var(--gr);color:#fff;align-self:flex-end;border-bottom-right-radius:2px}
+.ml2{font-size:8.5px;color:var(--mu);margin-bottom:2px;font-weight:500}.mlr{text-align:right}
+.qbts{padding:5px 9px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:4px;flex-shrink:0;background:var(--s1)}
+.qb{font-size:9px;padding:3px 7px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;color:var(--sb);transition:all .15s;font-weight:500}
+.qb:hover{border-color:var(--gr);color:var(--gr);background:var(--grl)}
+.cin{padding:8px 10px;border-top:1px solid var(--bd);flex-shrink:0;background:var(--s1)}
+.irow{display:flex;gap:5px;align-items:flex-end}
+.mbtn{width:29px;height:29px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;color:var(--sb);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.mbtn:hover{border-color:var(--gr);color:var(--gr)}.mbtn.rec{background:#fee2e2;border-color:var(--rd);color:var(--rd);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.inp{flex:1;padding:6px 9px;border:1px solid var(--bd);border-radius:8px;font-size:11px;background:var(--s2);color:var(--tx);resize:none;font-family:inherit}
+.inp:focus{outline:none;border-color:var(--gr);background:#fff}
+.sbtn{width:29px;height:29px;background:var(--gr);border:none;border-radius:8px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sbtn:hover{background:#0a8562}
+.nota{font-size:8.5px;color:var(--mu);text-align:center;margin-top:4px}
+.ty span{width:5px;height:5px;border-radius:50%;background:#6d28d9;display:inline-block;margin:0 1px;animation:bl 1.2s infinite}
+.ty span:nth-child(2){animation-delay:.2s}.ty span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.ov{position:fixed;inset:0;background:rgba(16,24,40,.45);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px)}
+.ov.open{display:flex}
+.modal{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:20px;width:340px;max-width:95vw;box-shadow:0 20px 60px rgba(16,24,40,.15)}
+.modal h3{font-size:13px;font-weight:700;margin-bottom:3px}.modal p{font-size:10px;color:var(--mu);margin-bottom:14px;line-height:1.5}
+.field{margin-bottom:11px}.field label{display:block;font-size:10px;color:var(--sb);margin-bottom:4px;font-weight:600}
+.field input,.field select{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--s2);color:var(--tx);font-size:12px;outline:none;font-family:inherit}
+.field input:focus,.field select:focus{border-color:var(--gr);background:#fff}
+.field select option{background:#fff}
+.mbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.bcn{padding:7px 13px;border:1px solid var(--bd);background:var(--s2);color:var(--sb);border-radius:8px;cursor:pointer;font-size:11px;font-weight:500}
+.bok{padding:7px 13px;background:var(--gr);border:none;color:#fff;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600}
+.bok:hover{background:#0a8562}
+.sbox{padding:7px 9px;border-radius:8px;background:var(--s2);border:1px solid var(--bd);margin-bottom:12px;font-size:10.5px;display:flex;align-items:center;gap:6px;font-weight:500}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--gr);animation:pulse 1.5s infinite;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="tb">
+  <div style="display:flex;align-items:center;gap:9px">
+    <div class="logo"><i class="ti ti-wave-sine"></i></div>
+    <div><div class="tn">SP4 VibraSense</div><div class="ts">ISO 10816 · MONITOR INDUSTRIAL</div></div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <div id="db-chip" class="chip" onclick="openDB()"><i class="ti ti-database"></i><span id="db-lbl">Banco</span></div>
+    <div id="rt-chip" class="chip"><i class="ti ti-circle" style="font-size:8px"></i><span id="rt-lbl">Offline</span></div>
+    <div id="bat-chip" class="chip"><i class="ti ti-battery"></i><span id="bat-lbl">—%</span></div>
+    <button onclick="openSensor()" class="chip g"><i class="ti ti-cpu"></i><span id="sns-lbl">Sensor</span></button>
+    <button onclick="openAgente()" id="agente-chip" class="chip"><i class="ti ti-robot"></i><span id="agente-lbl">Agente IA</span></button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sb">
+    <div class="nav" id="nav"></div>
+    <div class="ml" id="mlist"></div>
+  </div>
+  <div class="main">
+    <div class="top2">
+      <div><div class="t2t" id="t2t">Selecione uma máquina</div><div class="t2m" id="t2m">Configure o banco e instale o sensor</div></div>
+      <div id="t2chips" style="display:flex;gap:5px"></div>
+    </div>
+    <div class="ab" id="abar"><i class="ti ti-alert-triangle"></i><span id="atxt"></span></div>
+    <div class="kpis">
+      <div class="kc"><div class="kl">RMS atual</div><div class="kv" id="k-rms">—</div><div class="ks">mm/s</div></div>
+      <div class="kc"><div class="kl">Pico máx.</div><div class="kv" id="k-pico" style="color:var(--rd)">—</div><div class="ks">mm/s</div></div>
+      <div class="kc"><div class="kl">Bateria</div><div class="kv" id="k-bat">—</div><div class="ks" id="k-bats">—</div></div>
+      <div class="kc"><div class="kl">Última leitura</div><div class="kv" id="k-time" style="font-size:12px">—</div><div class="ks" id="k-times">—</div></div>
+    </div>
+    <div class="charts">
+      <div class="cc">
+        <div class="ct"><span>Vibração RMS · mm/s · tempo real</span><span id="rms-bdg" style="font-size:9px;color:var(--mu)">— mm/s</span></div>
+        <div class="cw">
+          <div class="idle" id="idle-c"><i class="ti ti-chart-line"></i><span>Configure o banco e selecione a máquina</span></div>
+          <canvas id="vc" style="display:none"></canvas>
+        </div>
+      </div>
+      <div class="cc">
+        <div class="ct"><span>Saúde por eixo</span></div>
+        <div id="hbars" style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly">
+          <div class="idle"><i class="ti ti-activity"></i><span>Aguardando leituras</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="chat">
+    <div class="chdr">
+      <div class="cav"><i class="ti ti-robot"></i></div>
+      <div><div class="ctit">Agente IA<span class="aibadge">Claude</span></div><div class="csub">Análise preditiva · voz + texto</div></div>
+    </div>
+    <div class="msgs" id="msgs">
+      <div class="ml2">Agente IA</div>
+      <div class="msg ai">Olá! Sou o Agente VibraSense.<br><br>Para começar:<br>1. Clique em <strong>Banco</strong> e configure o Supabase<br>2. Clique em <strong>Sensor</strong> e selecione a máquina<br>3. Clique em <strong>Agente IA</strong> e cole sua chave Claude<br><br>Depois é só perguntar — por texto ou <strong>voz</strong> 🎙️</div>
+    </div>
+    <div class="qbts">
+      <button class="qb" onclick="q('status')">Status ↗</button>
+      <button class="qb" onclick="q('rms')">O que é RMS? ↗</button>
+      <button class="qb" onclick="q('falha')">Tipos de falha ↗</button>
+      <button class="qb" onclick="q('laudo')">Gerar laudo ↗</button>
+    </div>
+    <div class="cin">
+      <div class="irow">
+        <button class="mbtn" id="mic-btn" onclick="toggleMic()" title="Falar"><i class="ti ti-microphone" style="font-size:13px"></i></button>
+        <textarea class="inp" id="inp" rows="2" placeholder="Pergunte por texto ou use o microfone..."></textarea>
+        <button class="sbtn" onclick="sendChat()" title="Enviar"><i class="ti ti-send" style="font-size:13px"></i></button>
+      </div>
+      <div class="nota" id="mic-nota">Claude API · SP4 VibraSense · ISO 10816</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BANCO -->
+<div class="ov" id="m-db">
+  <div class="modal">
+    <h3><i class="ti ti-database"></i> Configurar Supabase</h3>
+    <p>Dados do seu projeto Supabase. Encontre em <strong>Settings → API</strong> do painel.</p>
+    <div class="sbox" id="db-sbox"><i class="ti ti-circle" style="font-size:10px;color:var(--mu)"></i><span id="db-stxt">Não configurado</span></div>
+    <div class="field"><label>URL do projeto</label><input id="db-url" type="text" placeholder="https://xxxxx.supabase.co"></div>
+    <div class="field"><label>Chave anon/public</label><input id="db-key" type="password" placeholder="eyJhbGc..."></div>
+    <div class="mbtns">
+      <button class="bcn" onclick="closeM('m-db')">Cancelar</button>
+      <button class="bok" onclick="salvarDB()">Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SENSOR -->
+<div class="ov" id="m-sns">
+  <div class="modal">
+    <h3><i class="ti ti-cpu"></i> Instalar sensor</h3>
+    <p>Selecione onde o sensor está instalado. Só essa máquina recebe dados reais — as outras ficam zeradas.</p>
+    <div class="field"><label>Categoria</label>
+      <select id="s-cat" onchange="fillMaq()">
+        <option value="">Selecione...</option>
+        <option>Compressores Alta (Sied)</option>
+        <option>Compressores Baixa (Atlas)</option>
+        <option>Integradas</option><option>Extrusão P.E.</option><option>Convencionais</option>
+      </select>
+    </div>
+    <div class="field"><label>Máquina</label><select id="s-maq"><option value="">Selecione...</option></select></div>
+    <div class="field"><label>ID do sensor (gravado a laser)</label><input id="s-id" type="text" value="MIG-01"></div>
+    <div class="mbtns">
+      <button class="bcn" onclick="closeM('m-sns')">Cancelar</button>
+      <button class="bok" onclick="salvarSensor()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGENTE -->
+<div class="ov" id="m-ag">
+  <div class="modal">
+    <h3><i class="ti ti-robot"></i> Agente IA — Claude API</h3>
+    <p>Cole sua chave da Claude API. Crie em <strong>console.anthropic.com → Chaves de API</strong>. Custo: ~R$0,02 por pergunta.</p>
+    <div class="sbox" id="ag-sbox"><i class="ti ti-circle" style="font-size:10px;color:var(--mu)"></i><span id="ag-stxt">Não configurado</span></div>
+    <div class="field"><label>Chave Claude API (sk-ant-...)</label><input id="ag-key" type="password" placeholder="sk-ant-api03-..."></div>
+    <p style="font-size:9px;color:var(--mu);margin-top:-6px">A chave fica salva no seu navegador. Nunca é enviada para terceiros.</p>
+    <div class="mbtns">
+      <button class="bcn" onclick="closeM('m-ag')">Cancelar</button>
+      <button class="bok" onclick="salvarAgente()">Salvar e ativar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DADOS DAS MÁQUINAS ────────────────────────────────────────
+const DB={
+  'Compressores Alta (Sied)':[
+    {id:'9025',sub:'Alta pressão · Sied'},{id:'9027',sub:'Alta pressão · Sied'},
+    {id:'9028',sub:'Alta pressão · Sied'},{id:'9012',sub:'Alta pressão · Sied'},{id:'9705',sub:'Alta pressão · Sied'}],
+  'Compressores Baixa (Atlas)':[
+    {id:'11018',sub:'Baixa pressão · Atlas'},{id:'11019',sub:'Baixa pressão · Atlas'},
+    {id:'11021',sub:'Baixa pressão · Atlas'},{id:'11022',sub:'Baixa pressão · Atlas'},{id:'11023',sub:'Baixa pressão · Atlas'}],
+  'Integradas':[
+    {id:'2027',sub:'Integrada'},{id:'2030',sub:'Integrada'},{id:'2032',sub:'Integrada'},
+    {id:'2045',sub:'Integrada'},{id:'2047',sub:'Integrada'},{id:'2054',sub:'Integrada'},
+    {id:'2057',sub:'Integrada'},{id:'2059',sub:'Integrada'}],
+  'Extrusão P.E.':[
+    {id:'5001',sub:'Extrusora P.E.'},{id:'5002',sub:'Extrusora P.E.'},{id:'5003',sub:'Extrusora P.E.'},
+    {id:'5004',sub:'Extrusora P.E.'},{id:'5005',sub:'Extrusora P.E.'},{id:'5006',sub:'Extrusora P.E.'},
+    {id:'5007',sub:'Extrusora P.E.'},{id:'5008',sub:'Extrusora P.E.'}],
+  'Convencionais':[
+    {id:'2017',sub:'Convencional'},{id:'2026',sub:'Convencional'},{id:'2039',sub:'Convencional'},{id:'2058',sub:'Convencional'}]
+};
+const TABS=Object.keys(DB);
+let tab=TABS[0],cur=DB[TABS[0]][0];
+let maqAtiva=localStorage.getItem('maq-ativa')||null;
+let sensorId=localStorage.getItem('sensor-id')||'MIG-01';
+let sbUrl=localStorage.getItem('sb-url')||'';
+let sbKey=localStorage.getItem('sb-key')||'';
+let claudeKey=localStorage.getItem('claude-key')||'';
+let supabase=null,channel=null;
+let vc=null,leituras=[],pico=0,batV=0,batPct=0;
+
+// ── NAV ───────────────────────────────────────────────────────
+const navEl=document.getElementById('nav');
+TABS.forEach(t=>{
+  const d=document.createElement('div');
+  d.className='nt'+(t===tab?' on':'');
+  d.textContent=t.split(' ')[0];
+  d.onclick=()=>{tab=t;cur=DB[t][0];navEl.querySelectorAll('.nt').forEach(x=>x.classList.remove('on'));d.classList.add('on');renderList();loadM(cur);};
+  navEl.appendChild(d);
+});
+
+function renderList(){
+  document.getElementById('mlist').innerHTML=DB[tab].map(m=>{
+    const at=maqAtiva===m.id;
+    const st=at?(pico>7.1?'pal':pico>4.5?'pwn':'pok'):'pid';
+    const lb=at?(pico>7.1?'ALERTA':pico>4.5?'ATENÇÃO':'ATIVO'):'IDLE';
+    return `<div class="mi${cur.id===m.id?' on':''}" onclick='loadM(${JSON.stringify(m)})'>
+      <div><div class="mn">${m.id}</div><div class="ms">${m.sub}</div></div>
+      <span class="pi ${st}">${lb}</span></div>`;
+  }).join('');
+}
+
+function loadM(m){
+  cur=m;
+  const at=maqAtiva===m.id;
+  document.getElementById('t2t').textContent=m.id+' · '+m.sub;
+  document.getElementById('t2m').textContent=at?`Sensor: ${sensorId} · dados em tempo real`:'Sensor não instalado aqui';
+  const tc=document.getElementById('t2chips');
+  tc.innerHTML=at
+    ?`<div class="chip g"><i class="ti ti-circle-filled" style="font-size:8px"></i>Ativo</div>
+      <div class="chip ${batPct>30?'g':batPct>15?'w':'r'}"><i class="ti ti-battery"></i>${batPct}%</div>`
+    :`<div class="chip"><i class="ti ti-circle" style="font-size:8px"></i>Sem sensor</div>`;
+  if(!at) resetDisplay();
+  renderList();
+}
+
+function resetDisplay(){
+  ['k-rms','k-pico','k-bat','k-time'].forEach(id=>document.getElementById(id).textContent='—');
+  ['k-bats','k-times'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('rms-bdg').textContent='— mm/s';
+  document.getElementById('abar').style.display='none';
+  document.getElementById('idle-c').style.display='flex';
+  document.getElementById('vc').style.display='none';
+  document.getElementById('hbars').innerHTML='<div class="idle"><i class="ti ti-activity"></i><span>Aguardando leituras</span></div>';
+  leituras=[];pico=0;if(vc){vc.destroy();vc=null;}
+}
+
+function atualizaDisplay(d){
+  if(cur.id!==maqAtiva)return;
+  const rms=parseFloat(d.rms_mms)||0;
+  batV=parseFloat(d.bateria_v)||0;
+  batPct=parseInt(d.bateria_pct)||0;
+  if(rms>pico)pico=rms;
+  leituras.push(rms);if(leituras.length>60)leituras.shift();
+  const agora=new Date(d.criado_em||Date.now());
+  document.getElementById('k-rms').textContent=rms.toFixed(2);
+  const kp=document.getElementById('k-pico');
+  kp.textContent=pico.toFixed(2);
+  kp.style.color=pico>7.1?'var(--rd)':pico>4.5?'var(--am)':'var(--gr)';
+  document.getElementById('k-bat').textContent=batPct+'%';
+  document.getElementById('k-bats').textContent=batV.toFixed(2)+'V · '+(batPct>60?'Boa':batPct>30?'Média':'Fraca');
+  document.getElementById('k-time').textContent=agora.toLocaleTimeString('pt-BR');
+  document.getElementById('k-times').textContent=agora.toLocaleDateString('pt-BR');
+  document.getElementById('rms-bdg').textContent=rms.toFixed(2)+' mm/s';
+  // chip bateria
+  document.getElementById('bat-chip').className='chip '+(batPct>30?'g':batPct>15?'w':'r');
+  document.getElementById('bat-chip').innerHTML=`<i class="ti ti-battery"></i><span>${batPct}%</span>`;
+  // alerta
+  const ab=document.getElementById('abar');
+  if(rms>7.1){ab.style.cssText='display:flex;margin:5px 12px 0;padding:7px 10px;border-radius:8px;font-size:10px;align-items:center;gap:6px;background:var(--rdl);color:var(--rd);border:1px solid #fca5a5;flex-shrink:0;font-weight:500';
+    document.getElementById('atxt').textContent=`🔴 CRÍTICO: Vibração ${rms.toFixed(2)} mm/s — acima do limite ISO 10816. Parar para inspeção!`;}
+  else if(rms>4.5){ab.style.cssText='display:flex;margin:5px 12px 0;padding:7px 10px;border-radius:8px;font-size:10px;align-items:center;gap:6px;background:var(--aml);color:var(--am);border:1px solid #fde68a;flex-shrink:0;font-weight:500';
+    document.getElementById('atxt').textContent=`⚠️ Atenção: Vibração elevada (${rms.toFixed(2)} mm/s) — monitorar.`;}
+  else ab.style.display='none';
+  renderHealth(rms);updateChart();renderList();
+}
+
+function renderHealth(rms){
+  const ax=[{l:'X · Radial',v:Math.max(4,100-Math.round(rms*8.5))},{l:'Y · Axial',v:Math.max(4,100-Math.round(rms*10.5))},
+    {l:'Z · Radial',v:Math.max(4,100-Math.round(rms*7))},{l:'Rolamento',v:Math.max(4,100-Math.round(rms*9.5))},{l:'Geral',v:Math.max(4,100-Math.round(rms*8))}];
+  document.getElementById('hbars').innerHTML=ax.map(a=>{
+    const c=a.v>=75?'#0d9e75':a.v>=50?'#d97706':'#dc2626';
+    return `<div class="hr"><span class="hl">${a.l}</span><div class="hb"><div class="hf" style="width:${a.v}%;background:${c}"></div></div><span class="hv" style="color:${c}">${a.v}%</span></div>`;
+  }).join('');
+}
+
+function updateChart(){
+  document.getElementById('idle-c').style.display='none';
+  document.getElementById('vc').style.display='block';
+  const labels=leituras.map((_,i)=>i===leituras.length-1?'agora':`-${leituras.length-1-i}s`);
+  if(!vc){
+    vc=new Chart(document.getElementById('vc'),{type:'line',
+      data:{labels,datasets:[
+        {label:'RMS',data:[...leituras],borderColor:'#0d9e75',backgroundColor:'rgba(13,158,117,0.07)',borderWidth:2,pointRadius:0,tension:0.4,fill:true},
+        {label:'Atenção',data:Array(leituras.length).fill(4.5),borderColor:'#d97706',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false},
+        {label:'Alerta',data:Array(leituras.length).fill(7.1),borderColor:'#dc2626',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#667085',font:{size:9},maxTicksLimit:5}},
+          x:{grid:{display:false},ticks:{color:'#667085',font:{size:9},maxTicksLimit:8}}}}});
+  }else{
+    vc.data.labels=labels;vc.data.datasets[0].data=[...leituras];
+    vc.data.datasets[1].data=Array(leituras.length).fill(4.5);
+    vc.data.datasets[2].data=Array(leituras.length).fill(7.1);
+    vc.update('none');
+  }
+}
+
+// ── SUPABASE ──────────────────────────────────────────────────
+function initSupabase(){
+  if(!sbUrl||!sbKey)return;
+  try{
+    supabase=window.supabase.createClient(sbUrl,sbKey);
+    document.getElementById('db-chip').className='chip g';
+    document.getElementById('db-lbl').textContent='Banco OK';
+    iniciarRealtime();
+    if(maqAtiva)buscarUltima();
+  }catch(e){
+    document.getElementById('db-chip').className='chip r';
+    document.getElementById('db-lbl').textContent='Erro banco';
+  }
+}
+
+async function buscarUltima(){
+  if(!supabase||!maqAtiva)return;
+  const{data}=await supabase.from('leituras').select('*').eq('maquina',maqAtiva).order('criado_em',{ascending:false}).limit(1);
+  if(data&&data.length>0)atualizaDisplay(data[0]);
+}
+
+async function buscarHistorico(){
+  if(!supabase||!maqAtiva)return[];
+  const{data}=await supabase.from('leituras').select('rms_mms,criado_em').eq('maquina',maqAtiva).order('criado_em',{ascending:false}).limit(60);
+  return data?data.reverse():[];
+}
+
+function iniciarRealtime(){
+  if(!supabase)return;
+  if(channel)supabase.removeChannel(channel);
+  channel=supabase.channel('leituras-rt')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'leituras'},payload=>{
+      const d=payload.new;
+      // Atualiza chip de status
+      document.getElementById('rt-chip').className='chip g';
+      document.getElementById('rt-chip').innerHTML='<div class="pulse-dot"></div><span>Ao vivo</span>';
+      if(d.maquina===maqAtiva)atualizaDisplay(d);
+    }).subscribe();
+}
+
+// ── MODAIS ────────────────────────────────────────────────────
+function openDB(){
+  document.getElementById('db-url').value=sbUrl;
+  document.getElementById('db-key').value=sbKey;
+  const box=document.getElementById('db-sbox');
+  box.innerHTML=sbUrl?`<i class="ti ti-circle-filled" style="font-size:10px;color:var(--gr)"></i> Configurado: <strong>${sbUrl.split('//')[1]||sbUrl}</strong>`
+    :`<i class="ti ti-circle" style="font-size:10px;color:var(--mu)"></i> Não configurado`;
+  document.getElementById('m-db').classList.add('open');
+}
+function salvarDB(){
+  const u=document.getElementById('db-url').value.trim();
+  const k=document.getElementById('db-key').value.trim();
+  if(!u||!k){alert('Preencha URL e chave');return;}
+  sbUrl=u;sbKey=k;
+  localStorage.setItem('sb-url',u);localStorage.setItem('sb-key',k);
+  closeM('m-db');initSupabase();
+  addMsg('✅ Banco Supabase conectado! Aguardando dados do sensor em tempo real...','ai');
+}
+
+function openSensor(){document.getElementById('m-sns').classList.add('open');}
+function fillMaq(){
+  const cat=document.getElementById('s-cat').value;
+  const sel=document.getElementById('s-maq');
+  sel.innerHTML='<option value="">Selecione...</option>';
+  if(cat&&DB[cat])DB[cat].forEach(m=>sel.innerHTML+=`<option value="${m.id}">${m.id} · ${m.sub}</option>`);
+}
+function salvarSensor(){
+  const maq=document.getElementById('s-maq').value;
+  const sid=document.getElementById('s-id').value.trim()||'MIG-01';
+  if(!maq){alert('Selecione a máquina');return;}
+  maqAtiva=maq;sensorId=sid;
+  localStorage.setItem('maq-ativa',maq);localStorage.setItem('sensor-id',sid);
+  document.getElementById('sns-lbl').textContent='Maq.'+maq;
+  leituras=[];pico=0;if(vc){vc.destroy();vc=null;}
+  const newTab=Object.keys(DB).find(k=>DB[k].some(x=>x.id===maq));
+  if(newTab&&newTab!==tab){tab=newTab;document.querySelectorAll('.nt').forEach((el,i)=>{el.classList.toggle('on',TABS[i]===tab);});}
+  cur=Object.values(DB).flat().find(x=>x.id===maq)||cur;
+  renderList();loadM(cur);closeM('m-sns');
+  addMsg(`✅ Sensor <strong>${sid}</strong> instalado na máquina <strong>${maq}</strong>. Aguardando dados em tempo real...`,'ai');
+  if(supabase){buscarUltima();buscarHistorico().then(h=>{if(h.length>0){leituras=h.map(x=>x.rms_mms);updateChart();}});}
+}
+
+function openAgente(){
+  document.getElementById('ag-key').value=claudeKey;
+  const box=document.getElementById('ag-sbox');
+  box.innerHTML=claudeKey?`<i class="ti ti-circle-filled" style="font-size:10px;color:var(--gr)"></i> <strong>Agente ativo</strong>`
+    :`<i class="ti ti-circle" style="font-size:10px;color:var(--mu)"></i> Chave não configurada`;
+  document.getElementById('m-ag').classList.add('open');
+}
+function salvarAgente(){
+  const k=document.getElementById('ag-key').value.trim();
+  if(!k){alert('Cole sua chave Claude API');return;}
+  claudeKey=k;localStorage.setItem('claude-key',k);
+  document.getElementById('agente-chip').className='chip g';
+  document.getElementById('agente-lbl').textContent='Agente ativo';
+  addMsg('✅ Agente IA ativado! Pode perguntar por texto ou usar o microfone 🎙️','ai');
+  closeM('m-ag');
+}
+
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.ov').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+// ── CHAT + CLAUDE API ─────────────────────────────────────────
+function addMsg(txt,who){
+  const msgs=document.getElementById('msgs');
+  const lbl=document.createElement('div');lbl.className='ml2'+(who==='us'?' mlr':'');lbl.textContent=who==='us'?'Você':'Agente IA';
+  const msg=document.createElement('div');msg.className='msg '+(who==='us'?'us':'ai');msg.innerHTML=txt;
+  msgs.appendChild(lbl);msgs.appendChild(msg);msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addTyping(){
+  const msgs=document.getElementById('msgs');
+  const lbl=document.createElement('div');lbl.className='ml2';lbl.textContent='Agente IA';
+  const msg=document.createElement('div');msg.className='msg ai';msg.innerHTML='<div class="ty"><span></span><span></span><span></span></div>';
+  msgs.appendChild(lbl);msgs.appendChild(msg);msgs.scrollTop=msgs.scrollHeight;
+  return{lbl,msg};
+}
+
+const QRESPS={
+  'status':()=>`📊 <strong>Status — ${cur.id}</strong><br>RMS: ${leituras.length?leituras[leituras.length-1].toFixed(2):'—'} mm/s<br>Pico: ${pico.toFixed(2)} mm/s<br>Bateria: ${batPct}% (${batV.toFixed(2)}V)<br>Sensor: ${maqAtiva===cur.id?'ATIVO':'não instalado aqui'}`,
+  'rms':'<strong>RMS (Root Mean Square)</strong> — raiz quadrática média da vibração.<br><br>Norma ISO 10816:<br>• 0–2.8 mm/s → ✅ Normal<br>• 2.8–4.5 mm/s → ✅ Aceitável<br>• 4.5–7.1 mm/s → ⚠️ Atenção<br>• >7.1 mm/s → 🔴 Parar máquina',
+  'falha':'🔍 <strong>Falhas por frequência:</strong><br>🔴 Desbalanceamento → 1× RPM<br>🟠 Desalinhamento → 2× e 3× RPM<br>🟡 Rolamento → BPFO/BPFI<br>🔵 Folga mecânica → harmônicos<br>⚪ Cavitação → >500 Hz',
+  'laudo':()=>`📋 <strong>Laudo ${new Date().toLocaleDateString('pt-BR')}</strong><br>Sensor: ${sensorId} · Máquina: ${cur.id}<br>RMS: ${leituras.length?leituras[leituras.length-1].toFixed(2):'—'} mm/s<br>Pico: ${pico.toFixed(2)} mm/s<br>Bateria: ${batPct}%<br>Status: ${pico>7.1?'⛔ CRÍTICO':pico>4.5?'⚠️ ATENÇÃO':'✅ NORMAL'}`
+};
+
+async function q(key){
+  const labels={status:'Status atual',rms:'O que é RMS?',falha:'Tipos de falha',laudo:'Gerar laudo'};
+  addMsg(labels[key],'us');
+  if(claudeKey){
+    await chamarClaude(labels[key]);
+  }else{
+    const r=QRESPS[key];addMsg(typeof r==='function'?r():r,'ai');
+  }
+}
+
+async function sendChat(){
+  const inp=document.getElementById('inp');
+  if(!inp.value.trim())return;
+  const txt=inp.value.trim();inp.value='';
+  addMsg(txt,'us');
+  await chamarClaude(txt);
+}
+
+async function chamarClaude(pergunta){
+  if(!claudeKey){
+    addMsg('Configure o <strong>Agente IA</strong> no botão do topo para usar a IA real.','ai');
+    return;
+  }
+  const typing=addTyping();
+  const rmsAtual=leituras.length>0?leituras[leituras.length-1]:0;
+  const system=`Você é o Agente VibraSense, especialista em manutenção preditiva industrial. Analisa dados de vibração de compressores e máquinas e orienta o gestor em linguagem simples e direta.
+
+Norma ISO 10816: Zona A (0-2.8 mm/s normal), Zona B (2.8-4.5 aceitável), Zona C (4.5-7.1 atenção), Zona D (>7.1 PARAR).
+Falhas: desbalanceamento (1×RPM), desalinhamento (2-3×RPM), rolamento (BPFO/BPFI), folga (harmônicos), cavitação (>500Hz).
+Compressores Alta Sied: 9025,9027,9028,9012,9705. Baixa Atlas: 11018,11019,11021,11022,11023.
+Integradas: 2027,2030,2032,2045,2047,2054,2057,2059. Extrusão: 5001-5008. Convencionais: 2017,2026,2039,2058.
+Regras: linguagem simples, diga O QUE/ONDE/O QUE FAZER, use emojis ✅⚠️🔴🔧, indique urgência BAIXA/MÉDIA/ALTA/CRÍTICA.`;
+
+  const user=`Máquina: ${cur.id} | Sensor: ${sensorId} | RMS: ${rmsAtual.toFixed(2)} mm/s | Pico: ${pico.toFixed(2)} mm/s | Bateria: ${batPct}% (${batV.toFixed(2)}V) | Status: ${pico>7.1?'ALERTA':pico>4.5?'ATENCAO':'OK'}\n\nPergunta: ${pergunta}`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':claudeKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,system,messages:[{role:'user',content:user}]}),
+      signal:AbortSignal.timeout(30000)
+    });
+    const data=await resp.json();
+    typing.lbl.remove();typing.msg.remove();
+    if(data.content&&data.content[0]){
+      addMsg(data.content[0].text.replace(/\n/g,'<br>'),'ai');
+    }else if(data.error){
+      addMsg('Erro Claude API: '+data.error.message,'ai');
+    }
+  }catch(e){
+    typing.lbl.remove();typing.msg.remove();
+    addMsg('Erro ao conectar. Verifique sua chave e crédito em console.anthropic.com','ai');
+  }
+}
+
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}});
+
+// ── VOZ ───────────────────────────────────────────────────────
+let SR=null,ouvindo=false;
+function toggleMic(){
+  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){alert('Use Chrome ou Edge para voz.');return;}
+  ouvindo?pararMic():iniciarMic();
+}
+function iniciarMic(){
+  const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
+  SR=new SRC();SR.lang='pt-BR';SR.continuous=false;SR.interimResults=false;
+  SR.onstart=()=>{ouvindo=true;const b=document.getElementById('mic-btn');b.classList.add('rec');b.innerHTML='<i class="ti ti-microphone-off" style="font-size:13px"></i>';document.getElementById('mic-nota').textContent='🎙️ Ouvindo...';};
+  SR.onresult=e=>{const t=e.results[0][0].transcript;document.getElementById('inp').value=t;document.getElementById('mic-nota').textContent='✅ Captado — enviando...';pararMic();setTimeout(()=>sendChat(),500);};
+  SR.onerror=()=>{pararMic();document.getElementById('mic-nota').textContent='Erro no microfone.';setTimeout(resetNota,3000);};
+  SR.onend=()=>pararMic();SR.start();
+}
+function pararMic(){ouvindo=false;if(SR)SR.stop();const b=document.getElementById('mic-btn');b.classList.remove('rec');b.innerHTML='<i class="ti ti-microphone" style="font-size:13px"></i>';setTimeout(resetNota,2000);}
+function resetNota(){document.getElementById('mic-nota').textContent='Claude API · SP4 VibraSense · ISO 10816';}
+
+// ── INIT ──────────────────────────────────────────────────────
+renderList();loadM(cur);
+if(sbUrl&&sbKey)initSupabase();
+if(claudeKey){document.getElementById('agente-chip').className='chip g';document.getElementById('agente-lbl').textContent='Agente ativo';}
+if(maqAtiva){document.getElementById('sns-lbl').textContent='Maq.'+maqAtiva;const m=Object.values(DB).flat().find(x=>x.id===maqAtiva);if(m){cur=m;loadM(m);}}
+</script>
+</body>
+</html>
