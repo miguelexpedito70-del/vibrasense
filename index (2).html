@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibraSense</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--tx:#16202a;--mut:#64748b;--bd:#e2e8f0;--ok:#16a34a;--al:#d97706;--cr:#dc2626;--ac:#2563eb}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1720;--card:#18222e;--tx:#e6edf3;--mut:#93a4b5;--bd:#27364a;--ac:#60a5fa}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 18px;max-width:1100px;margin:0 auto}
+h1{font-size:20px;margin:0}h2{font-size:13px;margin:0 0 8px;color:var(--mut);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:0 14px 30px;display:grid;gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.big{font-size:32px;font-weight:700;line-height:1.1}.mut{color:var(--mut);font-size:13px}
+.pill{padding:5px 14px;border-radius:99px;font-weight:700;font-size:13px;color:#fff;background:var(--mut)}
+.OK{background:var(--ok)}.ALERTA{background:var(--al)}.CRITICO{background:var(--cr)}
+#aviso{display:none;background:var(--cr);color:#fff;padding:10px 14px;border-radius:10px;font-weight:600}
+canvas{width:100%;height:210px;display:block}
+#chat{height:290px;overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.m{padding:8px 12px;border-radius:10px;max-width:92%;white-space:pre-wrap}
+.user{background:var(--ac);color:#fff;align-self:flex-end}
+.assistant{background:var(--bg);border:1px solid var(--bd)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input,button,select{font:inherit;padding:9px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+input{flex:1;min-width:140px}
+input[type=checkbox]{flex:none;min-width:0;padding:0;width:16px;height:16px}
+input[type=date]{flex:none}
+button{background:var(--ac);color:#fff;border:0;cursor:pointer}
+#mic.on{background:var(--cr)}
+.opt{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--mut)}
+.opt label{display:flex;gap:6px;align-items:center}
+li{margin:3px 0}
+.row label{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--mut)}
+input[type=number]{flex:none;width:84px;min-width:0}
+.tbw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--bg)}
+.c-OK{color:var(--ok)}.c-ALERTA{color:var(--al);font-weight:700}.c-CRITICO{color:var(--cr);font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>VibraSense</h1><div class="mut" id="maq">—</div></div>
+  <span class="pill" id="pill">SEM DADOS</span>
+</header>
+<main>
+  <div id="aviso"></div>
+  <div class="grid">
+    <div class="card"><h2>Severidade (mm/s RMS)</h2><div class="big" id="tot">—</div></div>
+    <div class="card"><h2>Eixo X</h2><div class="big" id="x">—</div></div>
+    <div class="card"><h2>Eixo Y</h2><div class="big" id="y">—</div></div>
+    <div class="card"><h2>Eixo Z</h2><div class="big" id="z">—</div></div>
+    <div class="card"><h2>Bateria</h2><div class="big" id="bat">—</div><div class="mut" id="batv"></div></div>
+    <div class="card"><h2>Wi-Fi</h2><div class="big" id="wifi">—</div><div class="mut">dBm</div></div>
+    <div class="card"><h2>Última leitura há</h2><div class="big" id="idade">—</div></div>
+  </div>
+
+  <div class="card"><h2>Tempo real, mm/s (últimos 10 min). As linhas tracejadas de alerta e crítico aparecem depois que a linha de base for definida</h2><canvas id="c1"></canvas></div>
+
+  <div class="card">
+    <h2>Resumo por dia (últimos 7 dias). Toque num dia para ver o detalhe abaixo</h2>
+    <div class="tbw">
+      <table id="tb">
+        <thead><tr><th>Dia</th><th>% ligado</th><th>Média ligado</th><th>Δ média</th><th>P95 ligado</th><th>Pico</th><th>Média X / Y / Z</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="mut" id="tbn" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Tendência de longo prazo, com o compressor ligado: média diária (azul) e pico diário (vermelho)</h2>
+    <div class="row" style="margin-bottom:8px">
+      <select id="tper"><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select>
+    </div>
+    <canvas id="c3"></canvas>
+    <div class="mut" id="tnd" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Detalhe: pico (vermelho) e média (azul) a cada 10 min</h2>
+    <div class="row" style="margin-bottom:8px">
+      <select id="per">
+        <option value="hoje">Hoje</option>
+        <option value="24h">Últimas 24 h</option>
+        <option value="3d" selected>Últimos 3 dias</option>
+        <option value="7d">Últimos 7 dias</option>
+        <option value="dia">Dia específico</option>
+      </select>
+      <input type="date" id="dia">
+    </div>
+    <canvas id="c2"></canvas>
+  </div>
+
+  <div class="card"><h2 id="octit">Ocorrências no período</h2><ul id="oc" style="margin:0;padding-left:18px"></ul></div>
+
+  <div class="card">
+    <h2>Linha de base e limites desta máquina</h2>
+    <div id="lbst" style="margin-bottom:8px"></div>
+    <div class="row">
+      <select id="bper"><option value="6">Últimas 6 h</option><option value="12">Últimas 12 h</option><option value="24" selected>Últimas 24 h</option><option value="48">Últimas 48 h</option></select>
+      <label>Fator do alerta <input id="fal" type="number" step="0.1" min="1" value="1.5"></label>
+      <label>Fator do crítico <input id="fcr" type="number" step="0.1" min="1" value="2"></label>
+      <button id="bcalc">Calcular</button>
+    </div>
+    <div class="mut" style="margin-top:6px">Alerta = fator × P95 e crítico = fator × P95, medidos só com o compressor ligado. Calcule depois que o sensor estiver firme e o compressor operando normalmente.</div>
+    <div id="lbres" style="margin-top:8px"></div>
+    <div class="row" style="margin-top:8px"><button id="bsalva" style="display:none">Salvar estes limites</button><button id="bzera" style="background:var(--mut)">Voltar à calibração</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Anotações da máquina (o agente de IA lê estas anotações)</h2>
+    <div class="row"><input id="nota" placeholder="Ex.: Troca de rolamento hoje · Teste com sensor solto · Máquina parada para manutenção"><button id="addn">Registrar</button></div>
+    <ul id="ln" style="margin:8px 0 0;padding-left:18px"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Agente de IA</h2>
+    <div id="chat"></div>
+    <div class="row"><input id="q" placeholder="Pergunte sobre a máquina… ou toque no microfone"><button id="mic" title="Falar">🎤</button><button id="env">Enviar</button><button id="ana">Analisar agora</button></div>
+    <div class="opt">
+      <label><input type="checkbox" id="auto" checked> Enviar ao terminar de falar</label>
+      <label><input type="checkbox" id="voz"> Ler a resposta em voz alta</label>
+    </div>
+    <details style="margin-top:8px"><summary class="mut">Chave da API Anthropic (fica só neste navegador)</summary>
+      <div class="row" style="margin-top:6px"><input id="k" type="password" placeholder="sk-ant-..."><button id="sk">Salvar</button></div>
+    </details>
+  </div>
+</main>
+<script>
+// ====== EDITE ESTAS LINHAS ======
+const SB_URL = "https://byliqlvugdtodrggwnij.supabase.co";   // sem "/rest/v1" e sem "/" no final
+const SB_KEY = "sb_publishable_R6Hjw94LrcRkAngOdZ_rkw_QEvGKoWA";           // a mesma da linha 23 do .ino
+const INICIO_REAL = '';   // ignora dados de teste anteriores a esta data. Ex.: '2026-11-17T08:00:00-03:00'. Vazio = usa tudo
+const INFO_MAQUINA = 'Compressor de ar alternativo de pistões, marca SIAD (Macchine Impianti, Bergamo, Itália), modelo WS3/900-C3, com cilindros em V/W conforme a foto e três estágios pelo código do modelo (a confirmar), teste de fábrica em setembro de 1999. Vazão 800 m3/h, aspiração atmosférica, pressão de descarga 42 bar g, potência no eixo 150 kW, 740 rpm (rotação do compressor = 12,3 Hz; 2x = 24,7 Hz). Acionado por correias por motor WEG 315S/M de 150 kW (200 cv), 1785 rpm (29,8 Hz), 60 Hz, 220/380/440 V, rolamentos 6319-C3 e 6316-C3 (leitura da placa, a confirmar). Redução de cerca de 2,4 para 1. Conjunto montado sobre base com molas. Manutenções registradas em adesivos da Eletro Mecânica Guará (28/06/2011 e 19/12/2024) e última preventiva informada em 09/10/2026. Compressor alternativo vibra mais que máquina rotativa: os limites vêm da linha de base medida na própria máquina e não da ISO 10816 de máquinas rotativas. Local de fixação do sensor e orientação dos eixos: (preencher).';
+// =================================
+const MODELO = 'claude-sonnet-5-5', LIGADO_MIN = 2, OFFLINE_S = 30, BAT_BAIXA = 20;
+const SYS = 'Você é o analista de vibração do VibraSense, que monitora compressores industriais com um acelerômetro ADXL345 (velocidade RMS em mm/s, faixa aproximada 10 a 400 Hz, sem FFT). Os limites de alerta e crítico NÃO vêm da ISO 10816 de máquinas rotativas: vêm da linha de base medida na própria máquina e aparecem nos dados atuais; se a máquina ainda estiver sem linha de base, não classifique nada como alerta ou crítico, apenas descreva o que os dados mostram. Leituras abaixo de 2 mm/s indicam máquina parada ou sensor fora da máquina. Responda em português, em texto simples sem markdown, para um gestor de manutenção, nesta ordem: 1) situação atual; 2) tendência e comparação com os dias anteriores, usando o resumo por dia e as anotações do gestor; 3) hipóteses prováveis considerando a distribuição entre os eixos (desbalanceamento, desalinhamento, folga ou base solta, rolamento, fixação do sensor), deixando claro que sem FFT são hipóteses; 4) ações práticas em ordem de prioridade e quando parar a máquina. Regras: baseie-se só nos dados fornecidos e não invente; se houver menos de 3 dias de dados, diga que ainda não existe linha de base confiável; não conclua defeito a partir de um pico isolado (confira o P95, se o pico se repete e se o status do sensor é OK); problemas de bateria, Wi-Fi ou sensor são falhas do equipamento de medição e não da máquina; leituras que as anotações descrevem como teste, parada ou manutenção devem ser interpretadas conforme a anotação. Seja objetivo (no máximo 250 palavras) e cite números.';
+const $ = id => document.getElementById(id);
+const enc = encodeURIComponent;
+const H = {apikey: SB_KEY, 'Content-Type': 'application/json'}; // chave sb_publishable_: sem Authorization
+const T0 = INICIO_REAL ? new Date(INICIO_REAL).getTime() : 0;
+let LIM_AL = null, LIM_CR = null, limInfo = null, baseCalc = null, tndTxt = '';
+let live = [], resumoPer = 'sem dados', dias7 = [], notas = [], hist = [], erro = '', pronto = false, chave = localStorage.getItem('akey') || '';
+
+async function sb(p, o) {
+  const r = await fetch(SB_URL + '/rest/v1/' + p, Object.assign({headers: H}, o));
+  if (!r.ok) throw new Error('banco ' + r.status);
+  return o ? null : r.json();
+}
+const cls = v => LIM_AL == null ? '' : (LIM_CR != null && v >= LIM_CR) ? 'CRITICO' : v >= LIM_AL ? 'ALERTA' : 'OK';
+const estado = v => v < LIGADO_MIN ? {rot: 'PARADO', cl: ''} : LIM_AL == null ? {rot: 'EM CALIBRAÇÃO', cl: ''} : {rot: cls(v), cl: cls(v)};
+const f = (v, d = 2) => v == null ? '—' : Number(v).toFixed(d);
+const tempo = s => s < 90 ? Math.round(s) + ' s' : Math.round(s / 60) + ' min';
+const dstr = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+
+function grafico(cv, series, opts = {}) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const c = cv.getContext('2d'); c.scale(dpr, dpr);
+  const css = getComputedStyle(document.documentElement), col = n => css.getPropertyValue(n).trim();
+  const all = series.flatMap(s => s.p);
+  c.font = '11px system-ui';
+  if (!all.length) { c.fillStyle = col('--mut'); c.fillText('Sem dados neste período', 10, 20); return; }
+  const t0 = Math.min(...all.map(p => p.t)), t1 = Math.max(...all.map(p => p.t));
+  const vmax = Math.max(...all.map(p => p.v));
+  const ord = all.map(p => p.v).sort((a, b) => a - b), p95v = ord[Math.floor(0.95 * (ord.length - 1))] || 1;
+  const ref = LIM_CR != null ? LIM_CR : p95v * 1.5;
+  const ym = Math.min(Math.max(ref * 1.15, vmax), ref * 3), P = 30;
+  const X = t => P + (w - P - 8) * ((t - t0) / ((t1 - t0) || 1));
+  const Y = v => h - 20 - (h - 30) * (Math.min(v, ym) / ym);
+  [[LIM_AL, '--al'], [LIM_CR, '--cr']].filter(x => x[0] != null).forEach(([l, k]) => {
+    c.strokeStyle = col(k); c.fillStyle = col(k); c.lineWidth = 1; c.setLineDash([4, 4]);
+    c.beginPath(); c.moveTo(P, Y(l)); c.lineTo(w - 8, Y(l)); c.stroke(); c.fillText(String(+l.toFixed(1)), 2, Y(l) + 4);
+  });
+  c.setLineDash([]);
+  series.forEach(s => {
+    c.strokeStyle = col(s.c); c.fillStyle = col(s.c); c.lineWidth = 2; c.beginPath();
+    let prev = null;
+    s.p.forEach(q => {
+      const novo = prev === null || (s.gap && q.t - prev > s.gap);
+      if (novo) c.moveTo(X(q.t), Y(q.v)); else c.lineTo(X(q.t), Y(q.v));
+      prev = q.t;
+    });
+    c.stroke();
+    if (s.gap) s.p.forEach((q, i) => {
+      const a = i > 0 && q.t - s.p[i - 1].t <= s.gap, b = i < s.p.length - 1 && s.p[i + 1].t - q.t <= s.gap;
+      if (!a && !b) { c.beginPath(); c.arc(X(q.t), Y(q.v), 2.5, 0, 7); c.fill(); }
+    });
+  });
+  if (vmax > ym) {
+    c.fillStyle = col('--cr'); c.textAlign = 'right';
+    c.fillText('pico de ' + vmax.toFixed(1) + ' mm/s (fora da escala)', w - 8, 12); c.textAlign = 'left';
+  }
+  const fmt = opts.dia ? {day: '2-digit', month: '2-digit'} : {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'};
+  c.fillStyle = col('--mut'); c.fillText(new Date(t0).toLocaleString('pt-BR', fmt), P, h - 5);
+  c.textAlign = 'right'; c.fillText(new Date(t1).toLocaleString('pt-BR', fmt), w - 8, h - 5); c.textAlign = 'left';
+}
+
+function render() {
+  const u = live[live.length - 1], av = [];
+  if (erro) av.push('Sem conexão com o banco (' + erro + ').');
+  if (!u) {
+    $('pill').className = 'pill'; $('pill').textContent = 'SEM DADOS';
+  } else {
+    const idade = (Date.now() - new Date(u.criado_em)) / 1000, off = idade > OFFLINE_S;
+    const es = estado(u.rms_mms); let st = es.cl;
+    if (u.status === 'SENSOR_ERRO' || u.status === 'BAT_CRITICA') st = 'CRITICO';
+    $('maq').textContent = u.maquina + ' · ' + u.sensor_id;
+    $('pill').className = 'pill ' + (off ? '' : st);
+    $('pill').textContent = off ? 'OFFLINE' : u.status === 'SENSOR_ERRO' ? 'SENSOR COM FALHA' : u.status === 'BAT_CRITICA' ? 'BATERIA CRÍTICA' : es.rot;
+    $('tot').textContent = f(u.rms_mms); $('x').textContent = f(u.rms_x); $('y').textContent = f(u.rms_y); $('z').textContent = f(u.rms_z);
+    $('bat').textContent = u.bateria_pct == null ? '—' : u.bateria_pct + '%';
+    $('batv').textContent = u.bateria_v == null ? 'sem bateria (USB)' : f(u.bateria_v) + ' V';
+    $('wifi').textContent = u.wifi_rssi == null ? '—' : u.wifi_rssi;
+    $('idade').textContent = tempo(idade);
+    if (off) av.push('Sensor offline há ' + tempo(idade) + '. Verifique bateria, Wi-Fi e alimentação.');
+    if (u.status === 'SENSOR_ERRO') av.push('ADXL345 sem resposta. Verifique os fios do sensor.');
+    if (u.bateria_pct != null && u.bateria_pct < BAT_BAIXA) av.push('Bateria baixa (' + u.bateria_pct + '%). Recarregue.');
+  }
+  $('aviso').style.display = av.length ? 'block' : 'none';
+  $('aviso').textContent = av.join(' ');
+}
+
+async function atualiza() {
+  try {
+    let url = 'leituras?select=*&order=criado_em.desc&limit=120';
+    if (T0) url += '&criado_em=gte.' + enc(new Date(T0).toISOString());
+    live = (await sb(url)).reverse();
+    erro = '';
+    const u = live[live.length - 1];
+    const rec = u ? live.filter(r => +new Date(r.criado_em) >= +new Date(u.criado_em) - 6e5) : [];
+    grafico($('c1'), [{c: '--ac', gap: 20000, p: rec.map(r => ({t: +new Date(r.criado_em), v: r.rms_mms}))}]);
+    if (!pronto && live.length) { pronto = true; recarrega(); carregaNotas(); }
+  } catch (e) { erro = e.message; }
+  render();
+}
+
+const ROT = {hoje: 'hoje', '24h': 'últimas 24 h', '3d': 'últimos 3 dias', '7d': 'últimos 7 dias'};
+async function historico() {
+  const u = live[live.length - 1]; if (!u) return;
+  try {
+    let per = $('per').value, de, ate = 0, rot;
+    if (per === 'dia' && !$('dia').value) per = 'hoje';
+    if (per === 'dia') {
+      de = +new Date($('dia').value + 'T00:00:00'); ate = de + 864e5;
+      rot = 'dia ' + new Date($('dia').value + 'T12:00:00').toLocaleDateString('pt-BR');
+    } else if (per === 'hoje') {
+      const d0 = new Date(); d0.setHours(0, 0, 0, 0); de = +d0; rot = ROT.hoje;
+    } else {
+      de = Date.now() - {'24h': 1, '3d': 3, '7d': 7}[per] * 864e5; rot = ROT[per];
+    }
+    de = Math.max(de, T0);
+    let url = 'leituras_10min?select=*&maquina=eq.' + enc(u.maquina) + '&periodo=gte.' + enc(new Date(de).toISOString());
+    if (ate) url += '&periodo=lt.' + enc(new Date(ate).toISOString());
+    const d = (await sb(url + '&order=periodo.desc&limit=1000')).reverse();
+    const P = k => d.map(r => ({t: +new Date(r.periodo), v: +r[k]}));
+    grafico($('c2'), [{c: '--cr', gap: 1.5e6, p: P('max_mms')}, {c: '--ac', gap: 1.5e6, p: P('media_mms')}]);
+    const ev = LIM_AL == null ? [] : d.filter(r => r.max_mms >= LIM_AL).reverse();
+    $('octit').textContent = 'Ocorrências (' + rot + ')' + (LIM_AL == null ? ': defina a linha de base para listar ocorrências' : ': períodos de 10 min com pico acima de ' + LIM_AL + ' mm/s');
+    $('oc').innerHTML = '';
+    (ev.length ? ev.slice(0, 15) : [null]).forEach(r => {
+      const li = document.createElement('li');
+      li.textContent = r ? new Date(r.periodo).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) + ' — pico ' + r.max_mms + ' mm/s (' + cls(r.max_mms) + ')'
+                         : (LIM_AL == null ? 'Sem linha de base: a página está em calibração e não classifica ocorrências.' : 'Nenhuma ocorrência acima de ' + LIM_AL + ' mm/s neste período.');
+      $('oc').appendChild(li);
+    });
+    resumoPer = rot + ': ' + (d.length ? 'pico ' + Math.max(...d.map(r => r.max_mms)) + ' mm/s; ' + d.length + ' períodos de 10 min' + (LIM_AL == null ? '' : ', ' + ev.length + ' com pico acima do limite de alerta (' + LIM_AL + ' mm/s)') : 'sem dados');
+  } catch (e) {}
+}
+
+async function diario() {
+  const u = live[live.length - 1]; if (!u) return;
+  try {
+    let desde = dstr(new Date(Date.now() - 6 * 864e5));
+    if (T0 && dstr(new Date(T0)) > desde) desde = dstr(new Date(T0));
+    dias7 = await sb('leituras_dia?select=*&maquina=eq.' + enc(u.maquina) + '&dia=gte.' + desde + '&order=dia.desc');
+    const tb = $('tb').tBodies[0]; tb.innerHTML = '';
+    dias7.forEach((r, i) => {
+      const ant = dias7[i + 1], tr = tb.insertRow();
+      const dl = new Date(r.dia + 'T12:00:00').toLocaleDateString('pt-BR', {weekday: 'short', day: '2-digit', month: '2-digit'});
+      const dv = ant && ant.media_ligado > 0 && r.media_ligado != null ? Math.round((r.media_ligado / ant.media_ligado - 1) * 100) : null;
+      const cel = (t, c) => { const td = tr.insertCell(); td.textContent = t; if (c) td.className = c; };
+      cel(dl); cel(r.pct_ligado == null ? '—' : r.pct_ligado + '%'); cel(f(r.media_ligado));
+      cel(dv == null ? '—' : (dv > 0 ? '+' : '') + dv + '%'); cel(f(r.p95_ligado));
+      cel(f(r.max_mms), 'c-' + cls(r.max_mms));
+      cel(f(r.media_x) + ' / ' + f(r.media_y) + ' / ' + f(r.media_z));
+      tr.onclick = () => { $('per').value = 'dia'; $('dia').value = r.dia; historico(); };
+    });
+    $('tbn').textContent = dias7.length
+      ? '% ligado = parte das leituras do dia com a máquina vibrando (acima de ' + LIGADO_MIN + ' mm/s). Média e P95 consideram só o compressor ligado. Δ média = variação em relação ao dia anterior.'
+      : 'Ainda sem dados nos últimos 7 dias.';
+  } catch (e) {
+    $('tbn').textContent = 'Resumo diário indisponível (' + e.message + '). Rode no Supabase o SQL da visão leituras_dia.';
+  }
+}
+
+async function carregaLimites() {
+  const u = live[live.length - 1]; if (!u) return;
+  try {
+    const r = await sb('limites?select=*&maquina=eq.' + enc(u.maquina));
+    limInfo = r[0] || null;
+    LIM_AL = limInfo && limInfo.alerta != null ? +limInfo.alerta : null;
+    LIM_CR = limInfo && limInfo.critico != null ? +limInfo.critico : null;
+    $('lbst').textContent = LIM_AL == null
+      ? 'Sem linha de base: a página está EM CALIBRAÇÃO e não classifica ALERTA nem CRÍTICO. Fixe o sensor, deixe o compressor operar normalmente por algumas horas e use Calcular.'
+      : 'Limites em uso: alerta ' + LIM_AL + ' mm/s · crítico ' + LIM_CR + ' mm/s (P95 de referência ' + f(limInfo.base_p95) + ' mm/s; ' + (limInfo.periodo_base || 'base definida') + (limInfo.definido_em ? '; definido em ' + new Date(limInfo.definido_em).toLocaleString('pt-BR') : '') + ').';
+  } catch (e) {
+    $('lbst').textContent = 'Limites indisponíveis (' + e.message + '). Rode no Supabase o SQL da tabela limites. Enquanto isso a página fica em calibração.';
+  }
+}
+const recarrega = () => carregaLimites().then(() => { historico(); diario(); tendencia(); });
+
+async function calculaBase() {
+  const u = live[live.length - 1];
+  if (!u) { $('lbres').textContent = 'Ainda sem leituras.'; return; }
+  const h = +$('bper').value, fal = parseFloat($('fal').value), fcr = parseFloat($('fcr').value);
+  if (!(fal > 1) || !(fcr > fal)) { $('lbres').textContent = 'Use um fator de alerta maior que 1 e um fator de crítico maior que o do alerta.'; return; }
+  $('bsalva').style.display = 'none'; baseCalc = null; $('lbres').textContent = 'Calculando…';
+  try {
+    const de = Math.max(Date.now() - h * 36e5, T0);
+    const d = await sb('leituras_10min?select=*&maquina=eq.' + enc(u.maquina) + '&periodo=gte.' + enc(new Date(de).toISOString()) + '&order=periodo.asc&limit=1000');
+    const lig = d.filter(r => r.media_mms >= LIGADO_MIN);
+    if (lig.length < 6) { $('lbres').textContent = 'Poucos períodos com o compressor ligado (' + lig.length + ' de 10 min com média acima de ' + LIGADO_MIN + ' mm/s). Espere mais tempo de operação ou escolha uma janela maior.'; return; }
+    const m = lig.map(r => +r.media_mms).sort((a, b) => a - b);
+    const media = m.reduce((a, b) => a + b, 0) / m.length;
+    const sd = Math.sqrt(m.reduce((a, b) => a + (b - media) * (b - media), 0) / m.length);
+    const p95 = m[Math.min(m.length - 1, Math.ceil(0.95 * m.length) - 1)];
+    const pico = Math.max(...lig.map(r => +r.max_mms));
+    const al = +(p95 * fal).toFixed(2), cr = +(p95 * fcr).toFixed(2);
+    baseCalc = {alerta: al, critico: cr, base_p95: +p95.toFixed(2), base_media: +media.toFixed(2), periodo_base: 'últimas ' + h + ' h, ' + lig.length + ' períodos de 10 min com a máquina ligada'};
+    $('lbres').textContent = 'Com o compressor ligado: ' + lig.length + ' períodos de 10 min, média ' + media.toFixed(2) + ', P95 ' + p95.toFixed(2) + ', pico ' + pico.toFixed(2) + ' mm/s. Sugestão: alerta = ' + fal + ' × P95 = ' + al + ' mm/s; crítico = ' + fcr + ' × P95 = ' + cr + ' mm/s. Valores provisórios: confirme com a manutenção antes de usar como alarme.' +
+      (sd / media > 0.4 ? ' Atenção: a variação entre os períodos é grande (' + Math.round(100 * sd / media) + '%). Confira se o sensor está firme e se o regime do compressor foi parecido.' : '');
+    $('bsalva').style.display = '';
+  } catch (e) { $('lbres').textContent = 'Não foi possível calcular (' + e.message + ').'; }
+}
+async function upsert(tab, obj, conflito) {
+  const r = await fetch(SB_URL + '/rest/v1/' + tab + '?on_conflict=' + conflito, {method: 'POST', headers: Object.assign({Prefer: 'resolution=merge-duplicates,return=minimal'}, H), body: JSON.stringify(obj)});
+  if (!r.ok) throw new Error('banco ' + r.status);
+}
+
+async function tendencia() {
+  const u = live[live.length - 1]; if (!u) return;
+  try {
+    const n = +$('tper').value;
+    let desde = dstr(new Date(Date.now() - (n - 1) * 864e5));
+    if (T0 && dstr(new Date(T0)) > desde) desde = dstr(new Date(T0));
+    const d = await sb('historico_dia?select=*&maquina=eq.' + enc(u.maquina) + '&dia=gte.' + desde + '&order=dia.asc&limit=200');
+    const t = r => +new Date(r.dia + 'T12:00:00'), lig = d.filter(r => r.media_ligado != null), gap = 1.6 * 864e5;
+    grafico($('c3'), [{c: '--cr', gap, p: d.map(r => ({t: t(r), v: +r.max_mms}))}, {c: '--ac', gap, p: lig.map(r => ({t: t(r), v: +r.media_ligado}))}], {dia: true});
+    const rec = lig.slice(-7), ant = lig.slice(-14, -7), mm = a => a.reduce((s2, r) => s2 + +r.media_ligado, 0) / a.length;
+    if (rec.length >= 3 && ant.length >= 3) {
+      const pc = Math.round((mm(rec) / mm(ant) - 1) * 100);
+      tndTxt = 'Média com o compressor ligado: últimos ' + rec.length + ' dias com dados ' + mm(rec).toFixed(2) + ' mm/s; ' + ant.length + ' dias anteriores ' + mm(ant).toFixed(2) + ' mm/s (' + (pc > 0 ? '+' : '') + pc + '%).';
+    } else {
+      tndTxt = 'Ainda há poucos dias com o compressor ligado (' + lig.length + ') para comparar tendência. O resumo de 10 min é gravado de hora em hora, então hoje aparece com atraso.';
+    }
+    $('tnd').textContent = tndTxt;
+  } catch (e) { tndTxt = ''; $('tnd').textContent = 'Tendência indisponível (' + e.message + '). Rode no Supabase o SQL da visão historico_dia.'; }
+}
+
+async function carregaNotas() {
+  const u = live[live.length - 1]; if (!u) return;
+  $('ln').innerHTML = '';
+  try {
+    notas = await sb('anotacoes?select=*&maquina=eq.' + enc(u.maquina) + '&order=criado_em.desc&limit=15');
+    (notas.length ? notas.slice(0, 8) : [null]).forEach(n => {
+      const li = document.createElement('li');
+      li.textContent = n ? new Date(n.criado_em).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) + ' — ' + n.texto : 'Nenhuma anotação ainda.';
+      $('ln').appendChild(li);
+    });
+  } catch (e) {
+    const li = document.createElement('li');
+    li.textContent = 'Anotações indisponíveis (' + e.message + '). Rode no Supabase o SQL da tabela anotacoes.';
+    $('ln').appendChild(li);
+  }
+}
+
+$('per').onchange = historico;
+$('tper').onchange = tendencia;
+$('bcalc').onclick = calculaBase;
+$('bsalva').onclick = async () => {
+  const u = live[live.length - 1]; if (!u || !baseCalc) return;
+  try {
+    await upsert('limites', Object.assign({maquina: u.maquina, definido_em: new Date().toISOString()}, baseCalc), 'maquina');
+    $('bsalva').style.display = 'none'; await recarrega(); atualiza();
+  } catch (e) { $('lbres').textContent = 'Não foi possível salvar (' + e.message + ').'; }
+};
+$('bzera').onclick = async () => {
+  const u = live[live.length - 1]; if (!u) return;
+  if (!confirm('Voltar para o modo de calibração? Os limites atuais serão desativados.')) return;
+  try { await upsert('limites', {maquina: u.maquina, alerta: null, critico: null, definido_em: new Date().toISOString()}, 'maquina'); await recarrega(); atualiza(); }
+  catch (e) { $('lbres').textContent = 'Não foi possível alterar (' + e.message + ').'; }
+};
+$('dia').onchange = () => { $('per').value = 'dia'; historico(); };
+$('addn').onclick = async () => {
+  const t = $('nota').value.trim(), u = live[live.length - 1]; if (!t || !u) return;
+  try { await sb('anotacoes', {method: 'POST', body: JSON.stringify({maquina: u.maquina, texto: t})}); $('nota').value = ''; carregaNotas(); }
+  catch (e) { alert('Não foi possível salvar a anotação (' + e.message + ').'); }
+};
+
+// ----- Agente de IA -----
+function contexto() {
+  const u = live[live.length - 1]; if (!u) return 'Sem leituras disponíveis.';
+  const r = live.slice(-30), v = r.map(x => x.rms_mms), idade = (Date.now() - new Date(u.criado_em)) / 1000;
+  const L = [];
+  L.push('FICHA DA MÁQUINA: ' + INFO_MAQUINA);
+  if (T0) L.push('Dados anteriores a ' + new Date(T0).toLocaleString('pt-BR') + ' eram de teste e foram ignorados.');
+  L.push('Máquina: ' + u.maquina + '. Última leitura há ' + tempo(idade) + ': total ' + u.rms_mms + ' mm/s RMS; X ' + u.rms_x + ', Y ' + u.rms_y + ', Z ' + u.rms_z +
+    '; bateria ' + (u.bateria_v == null ? 'sem bateria (USB)' : u.bateria_v + ' V (' + u.bateria_pct + '%)') + '; status do sensor ' + u.status + '.');
+  L.push('Estado atual pela página: ' + estado(u.rms_mms).rot + '.');
+  if (LIM_AL != null) L.push('Limites desta máquina (linha de base: ' + (limInfo && limInfo.periodo_base ? limInfo.periodo_base : 'definida pelo gestor') + '; P95 de referência ' + (limInfo ? limInfo.base_p95 : '?') + ' mm/s): alerta ' + LIM_AL + ' e crítico ' + LIM_CR + ' mm/s.');
+  else L.push('ATENÇÃO: esta máquina ainda NÃO tem linha de base (a página está em calibração). Não classifique como alerta ou crítico por valor absoluto; descreva só o que os dados mostram e o que falta para definir a linha de base.');
+  L.push('Últimas ' + r.length + ' leituras: média ' + (v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) + ', máx ' + Math.max(...v).toFixed(2) + ' mm/s.');
+  L.push('Período exibido no gráfico de detalhe, ' + resumoPer + '.');
+  if (tndTxt) L.push('Tendência de longo prazo: ' + tndTxt);
+  if (dias7.length) {
+    L.push('Resumo por dia, do mais recente ao mais antigo (mm/s; "ligado" = leituras acima de ' + LIGADO_MIN + ' mm/s):');
+    dias7.forEach(d => L.push('- ' + d.dia + ': ' + (d.media_ligado == null
+      ? 'sem leituras com a máquina ligada (parada ou sensor fora da máquina), pico ' + d.max_mms
+      : d.pct_ligado + '% das leituras com a máquina ligada, média ligada ' + d.media_ligado + ', P95 ligado ' + d.p95_ligado + ', pico ' + d.max_mms + ', médias X ' + d.media_x + ' Y ' + d.media_y + ' Z ' + d.media_z)));
+  } else L.push('Resumo por dia indisponível.');
+  if (notas.length) {
+    L.push('Anotações do gestor, da mais recente para a mais antiga:');
+    notas.forEach(n => L.push('- ' + new Date(n.criado_em).toLocaleDateString('pt-BR') + ': ' + n.texto));
+  }
+  return L.join('\n');
+}
+function add(role, txt) {
+  const d = document.createElement('div'); d.className = 'm ' + role; d.textContent = txt;
+  $('chat').appendChild(d); $('chat').scrollTop = 1e9; return d;
+}
+const salva = (papel, texto) => sb('conversas', {method: 'POST', body: JSON.stringify({papel, texto})}).catch(() => {});
+
+async function perguntar(txt) {
+  if (!chave) { add('assistant', 'Cole sua chave da API Anthropic em “Chave da API” e clique em Salvar.'); return; }
+  add('user', txt); hist.push({role: 'user', content: txt}); salva('user', txt);
+  const espera = add('assistant', 'Analisando…');
+  try {
+    const msgs = hist.slice(-10).filter(m => m.content); while (msgs.length && msgs[0].role !== 'user') msgs.shift();
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'content-type': 'application/json', 'x-api-key': chave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'},
+      body: JSON.stringify({model: MODELO, max_tokens: 4000, system: SYS + '\n\nDADOS ATUAIS:\n' + contexto(), messages: msgs})
+    });
+    const j = await r.json(); if (!r.ok) throw new Error((j.error && j.error.message) || r.status);
+    const t = j.content.map(b => b.text || '').join('') || ('Resposta vazia (motivo: ' + j.stop_reason + ')');
+    espera.textContent = t; hist.push({role: 'assistant', content: t}); salva('assistant', t);
+    if ($('voz').checked && 'speechSynthesis' in window) {
+      const s = new SpeechSynthesisUtterance(t); s.lang = 'pt-BR'; speechSynthesis.cancel(); speechSynthesis.speak(s);
+    }
+  } catch (e) { espera.textContent = 'Erro: ' + e.message; }
+}
+
+// ----- Microfone (reconhecimento de voz do navegador) -----
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, ouvindo = false;
+if (!SR) {
+  $('mic').style.display = 'none';
+} else {
+  rec = new SR(); rec.lang = 'pt-BR'; rec.interimResults = true; rec.continuous = false;
+  rec.onresult = e => { let t = ''; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; $('q').value = t; };
+  rec.onerror = e => {
+    const msg = {'not-allowed': 'permissão negada. Libere o microfone no cadeado ao lado do endereço da página.', 'no-speech': 'não ouvi nada, tente de novo.', 'audio-capture': 'nenhum microfone encontrado.', 'network': 'sem internet para o reconhecimento de voz.'}[e.error] || e.error;
+    add('assistant', 'Microfone: ' + msg);
+  };
+  rec.onend = () => {
+    ouvindo = false; $('mic').classList.remove('on'); $('mic').textContent = '🎤';
+    if ($('auto').checked && $('q').value.trim()) $('env').click();
+  };
+  $('mic').onclick = () => {
+    if (ouvindo) { rec.stop(); return; }
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    $('q').value = '';
+    try { rec.start(); ouvindo = true; $('mic').classList.add('on'); $('mic').textContent = '⏹'; } catch (e) {}
+  };
+}
+$('voz').onchange = () => { if (!$('voz').checked && 'speechSynthesis' in window) speechSynthesis.cancel(); };
+
+$('k').value = chave;
+$('sk').onclick = () => { chave = $('k').value.trim(); localStorage.setItem('akey', chave); add('assistant', 'Chave salva neste navegador.'); };
+$('env').onclick = () => { const t = $('q').value.trim(); if (t) { $('q').value = ''; perguntar(t); } };
+$('q').onkeydown = e => { if (e.key === 'Enter') $('env').click(); };
+$('ana').onclick = () => perguntar('Analise a situação atual da máquina, compare com os dias anteriores e me diga o que fazer.');
+(async () => {
+  try { (await sb('conversas?select=*&order=criado_em.desc&limit=20')).reverse().filter(m => m.texto).forEach(m => { hist.push({role: m.papel, content: m.texto}); add(m.papel, m.texto); }); } catch (e) {}
+})();
+atualiza();
+setInterval(atualiza, 3000); setInterval(render, 1000);
+setInterval(() => { recarrega(); carregaNotas(); }, 300000);
+window.onresize = () => { atualiza().then(historico); };
+</script>
+</body>
+</html>
